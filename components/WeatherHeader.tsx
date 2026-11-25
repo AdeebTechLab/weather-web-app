@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, type FormEvent } from 'react';
-import { CloudSun, Search, MapPin, Loader2 } from 'lucide-react';
+import React, { useEffect, useRef, useState, type FormEvent } from 'react';
+import { CloudSun, Search, MapPin, Loader2, X } from 'lucide-react';
+import { motion } from 'motion/react';
 import type { TemperatureUnit } from '@/lib/weather-utils';
 
 interface WeatherHeaderProps {
@@ -22,6 +23,22 @@ export default function WeatherHeader({
   isLightTheme,
 }: WeatherHeaderProps) {
   const [query, setQuery] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === '/' &&
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA'
+      ) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -117,14 +134,38 @@ export default function WeatherHeader({
                 aria-hidden="true"
               />
               <input
+                ref={inputRef}
                 id="city-search-input"
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search any city worldwide..."
                 autoComplete="off"
-                className={`w-full h-11 pl-10 pr-4 rounded-xl border text-sm font-medium outline-none transition-colors ${inputBg}`}
+                className={`w-full h-11 pl-10 pr-10 rounded-xl border text-sm font-medium outline-none transition-colors ${inputBg}`}
               />
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery('');
+                    inputRef.current?.focus();
+                  }}
+                  aria-label="Clear search"
+                  className={`absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md transition-colors cursor-pointer ${mutedText} hover:opacity-100`}
+                >
+                  <X className="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
+              ) : (
+                <kbd
+                  className={`hidden sm:inline-flex items-center justify-center absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono rounded border pointer-events-none opacity-65 ${
+                    isLightTheme
+                      ? 'border-slate-900/20 text-slate-700 bg-slate-900/5'
+                      : 'border-white/25 text-white bg-white/10'
+                  }`}
+                >
+                  /
+                </kbd>
+              )}
             </div>
             <button
               type="submit"
@@ -145,26 +186,29 @@ export default function WeatherHeader({
               role="group"
               aria-label="Temperature unit"
             >
-              <button
-                type="button"
-                onClick={() => onToggleUnit('C')}
-                aria-pressed={unit === 'C'}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  unit === 'C' ? toggleActive : toggleInactive
-                }`}
-              >
-                °C
-              </button>
-              <button
-                type="button"
-                onClick={() => onToggleUnit('F')}
-                aria-pressed={unit === 'F'}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  unit === 'F' ? toggleActive : toggleInactive
-                }`}
-              >
-                °F
-              </button>
+              {(['C', 'F'] as const).map((u) => {
+                const active = unit === u;
+                return (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => onToggleUnit(u)}
+                    aria-pressed={active}
+                    className={`relative px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                      active ? (isLightTheme ? 'text-white' : 'text-slate-900') : toggleInactive
+                    }`}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="desktop-unit-pill"
+                        transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+                        className={`absolute inset-0 rounded-lg ${toggleActive}`}
+                      />
+                    )}
+                    <span className="relative z-10">°{u}</span>
+                  </button>
+                );
+              })}
             </div>
 
             <button

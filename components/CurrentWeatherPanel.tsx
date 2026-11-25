@@ -17,6 +17,7 @@ import {
   formatCityLocalDateTime,
   formatSunTime,
   getCountryName,
+  getDaylightProgress,
   type CurrentWeatherData,
   type TemperatureUnit,
 } from '@/lib/weather-utils';
@@ -91,6 +92,11 @@ export default function CurrentWeatherPanel({
   ];
 
   const countryName = getCountryName(weather.sys.country);
+  const daylightProgress = getDaylightProgress(
+    weather.dt,
+    weather.sys.sunrise,
+    weather.sys.sunset
+  );
 
   return (
     <motion.section
@@ -126,12 +132,16 @@ export default function CurrentWeatherPanel({
             </p>
 
             <div className="pt-1 flex flex-wrap items-baseline gap-x-5 gap-y-1">
-              <span
+              <motion.span
+                key={`${displayTemp}-${unit}`}
+                initial={{ opacity: 0.5, scale: 0.94 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 className={`font-display text-6xl sm:text-7xl font-extrabold tracking-tight tabular-nums leading-none ${titleText}`}
                 data-testid="current-temperature"
               >
                 {displayTemp}°{unit}
-              </span>
+              </motion.span>
               <div className="space-y-0.5">
                 <p
                   className={`text-sm sm:text-base font-medium tabular-nums ${subText}`}
@@ -144,6 +154,33 @@ export default function CurrentWeatherPanel({
                 </p>
               </div>
             </div>
+
+            {/* Daylight Progress Bar */}
+            {daylightProgress !== null && (
+              <div className="pt-3 max-w-sm space-y-1.5">
+                <div className={`flex items-center justify-between text-[11px] font-medium ${mutedText}`}>
+                  <span>Sunrise {sunriseTime}</span>
+                  <span>Daylight {daylightProgress}%</span>
+                  <span>Sunset {sunsetTime}</span>
+                </div>
+                <div
+                  className={`relative h-1.5 rounded-full overflow-hidden ${
+                    isLightTheme ? 'bg-slate-900/15' : 'bg-white/15'
+                  }`}
+                >
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${daylightProgress}%` }}
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    className={`h-full rounded-full ${
+                      isLightTheme
+                        ? 'bg-gradient-to-r from-amber-500 to-sky-600'
+                        : 'bg-gradient-to-r from-amber-300 via-yellow-200 to-orange-400'
+                    }`}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Large Official Weather Icon & Condition */}
@@ -179,9 +216,16 @@ export default function CurrentWeatherPanel({
         className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4"
         aria-label="Atmospheric details"
       >
-        {metrics.map(({ label, value, icon: Icon }) => (
-          <div
+        {metrics.map(({ label, value, icon: Icon }, idx) => (
+          <motion.div
             key={label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.28,
+              delay: idx * 0.04,
+              ease: [0.16, 1, 0.3, 1],
+            }}
             className="glass-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-3"
           >
             <div className="flex items-center justify-between gap-2">
@@ -193,7 +237,7 @@ export default function CurrentWeatherPanel({
             >
               {value}
             </p>
-          </div>
+          </motion.div>
         ))}
       </div>
     </motion.section>

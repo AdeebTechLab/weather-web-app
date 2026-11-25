@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { History, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface RecentSearchesProps {
   searches: string[];
@@ -42,23 +43,31 @@ export default function RecentSearches({
           <span>Recent:</span>
         </span>
 
-        {searches.map((city) => {
-          const isActive =
-            activeCity && activeCity.toLowerCase() === city.toLowerCase();
-          return (
-            <button
-              key={city}
-              type="button"
-              onClick={() => onSelectCity(city)}
-              aria-label={`Load weather for ${city}`}
-              className={`h-8 px-3.5 rounded-full border text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                isActive ? chipActive : chipBase
-              }`}
-            >
-              {city}
-            </button>
-          );
-        })}
+        <AnimatePresence initial={false}>
+          {searches.map((city) => {
+            const isActive =
+              activeCity && activeCity.toLowerCase() === city.toLowerCase();
+            return (
+              <motion.button
+                key={city}
+                layout
+                initial={{ opacity: 0, scale: 0.88 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.88 }}
+                whileTap={{ scale: 0.96 }}
+                transition={{ duration: 0.2 }}
+                type="button"
+                onClick={() => onSelectCity(city)}
+                aria-label={`Load weather for ${city}`}
+                className={`h-8 px-3.5 rounded-full border text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  isActive ? chipActive : chipBase
+                }`}
+              >
+                {city}
+              </motion.button>
+            );
+          })}
+        </AnimatePresence>
 
         <button
           type="button"

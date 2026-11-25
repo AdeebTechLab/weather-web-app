@@ -146,6 +146,33 @@ export function formatSunTime(unixSeconds: number, timezoneOffsetSeconds: number
 }
 
 /**
+ * Formats a UNIX timestamp into a compact local hour label (e.g., "3 PM").
+ */
+export function formatHourLabel(unixSeconds: number, timezoneOffsetSeconds: number): string {
+  const localMs = (unixSeconds + timezoneOffsetSeconds) * 1000;
+  const date = new Date(localMs);
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    hour12: true,
+    timeZone: 'UTC',
+  }).format(date);
+}
+
+/**
+ * Computes percentage of daylight elapsed (0 to 100), or null if outside daytime.
+ */
+export function getDaylightProgress(
+  dtSeconds: number,
+  sunriseSeconds: number,
+  sunsetSeconds: number
+): number | null {
+  if (sunriseSeconds <= 0 || sunsetSeconds <= sunriseSeconds) return null;
+  if (dtSeconds < sunriseSeconds || dtSeconds > sunsetSeconds) return null;
+  const progress = ((dtSeconds - sunriseSeconds) / (sunsetSeconds - sunriseSeconds)) * 100;
+  return Math.max(0, Math.min(100, Math.round(progress)));
+}
+
+/**
  * Computes a YYYY-MM-DD local calendar key for a given UNIX timestamp and timezone offset.
  */
 export function getLocalDateKey(dtSeconds: number, timezoneOffsetSeconds: number): string {

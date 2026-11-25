@@ -4,14 +4,18 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   CloudSun,
-  Loader2,
   MapPin,
+  Sparkles,
   X,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import AtmosphericBackground from './AtmosphericBackground';
 import WeatherHeader from './WeatherHeader';
 import RecentSearches from './RecentSearches';
 import CurrentWeatherPanel from './CurrentWeatherPanel';
+import HourlyForecastStrip from './HourlyForecastStrip';
 import ForecastGrid from './ForecastGrid';
+import WeatherSkeleton from './WeatherSkeleton';
 import {
   RECENT_SEARCHES_KEY,
   UNIT_PREFERENCE_KEY,
@@ -20,6 +24,7 @@ import {
   groupForecastByLocalDate,
   type CurrentWeatherData,
   type DailyForecastSummary,
+  type ForecastEntry,
   type ForecastResponseData,
   type TemperatureUnit,
   type WeatherTheme,
@@ -31,6 +36,7 @@ export default function WeatherDashboard() {
   const [currentWeather, setCurrentWeather] =
     useState<CurrentWeatherData | null>(null);
   const [forecastDays, setForecastDays] = useState<DailyForecastSummary[]>([]);
+  const [forecastEntries, setForecastEntries] = useState<ForecastEntry[]>([]);
   const [unit, setUnit] = useState<TemperatureUnit>('C');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -117,6 +123,7 @@ export default function WeatherDashboard() {
 
         setCurrentWeather(current);
         setForecastDays(daily);
+        setForecastEntries(forecast.list || []);
         setErrorMessage(null);
 
         if (options.saveHistory !== false && current.name) {
@@ -245,170 +252,191 @@ export default function WeatherDashboard() {
     : 'default';
 
   const isLightTheme = theme === 'snow';
-  const titleText = isLightTheme ? 'text-slate-900' : 'text-white';
-  const subText = isLightTheme ? 'text-slate-700' : 'text-white/80';
 
   return (
     <div className={`weather-bg theme-${theme} flex flex-col`} data-theme={theme}>
-      <WeatherHeader
-        onSearch={(city) => fetchWeather({ city })}
-        onUseLocation={handleUseLocation}
-        unit={unit}
-        onToggleUnit={handleToggleUnit}
-        isLoading={isLoading}
-        isLightTheme={isLightTheme}
-      />
+      <AtmosphericBackground theme={theme} />
 
-      <RecentSearches
-        searches={recentSearches}
-        activeCity={currentWeather?.name}
-        onSelectCity={(city) => fetchWeather({ city })}
-        onClearHistory={handleClearHistory}
-        isLightTheme={isLightTheme}
-      />
+      <div className="relative z-10 flex flex-col flex-1">
+        <WeatherHeader
+          onSearch={(city) => fetchWeather({ city })}
+          onUseLocation={handleUseLocation}
+          unit={unit}
+          onToggleUnit={handleToggleUnit}
+          isLoading={isLoading}
+          isLightTheme={isLightTheme}
+        />
 
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-5">
-        {/* Inline Error Banner */}
-        {errorMessage ? (
-          <div
-            role="alert"
-            className={`rounded-2xl px-4 py-3.5 flex items-center justify-between gap-3 border ${
-              isLightTheme
-                ? 'bg-red-50/90 border-red-300 text-red-900'
-                : 'bg-red-950/60 border-red-400/35 text-red-50 backdrop-blur-md'
-            }`}
-            data-testid="error-banner"
-          >
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 shrink-0 text-red-400" aria-hidden="true" />
-              <p className="text-sm font-medium">{errorMessage}</p>
+        <RecentSearches
+          searches={recentSearches}
+          activeCity={currentWeather?.name}
+          onSelectCity={(city) => fetchWeather({ city })}
+          onClearHistory={handleClearHistory}
+          isLightTheme={isLightTheme}
+        />
+
+        <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-5">
+          {/* Inline Error Banner */}
+          <AnimatePresence>
+            {errorMessage ? (
+              <motion.div
+                key="error-banner"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                role="alert"
+                className={`rounded-2xl px-4 py-3.5 flex items-center justify-between gap-3 border ${
+                  isLightTheme
+                    ? 'bg-red-50/90 border-red-300 text-red-900'
+                    : 'bg-red-950/60 border-red-400/35 text-red-50 backdrop-blur-md'
+                }`}
+                data-testid="error-banner"
+              >
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 shrink-0 text-red-400" aria-hidden="true" />
+                  <p className="text-sm font-medium">{errorMessage}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setErrorMessage(null)}
+                  aria-label="Dismiss error"
+                  className="p-1 rounded-lg hover:bg-white/10 cursor-pointer shrink-0"
+                >
+                  <X className="w-4 h-4" aria-hidden="true" />
+                </button>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          {/* Loading Skeleton State */}
+          {isLoading ? <WeatherSkeleton /> : null}
+
+          {/* Weather Dashboard Content */}
+          {!isLoading && currentWeather ? (
+            <div className="space-y-6">
+              <CurrentWeatherPanel
+                weather={currentWeather}
+                unit={unit}
+                isLightTheme={isLightTheme}
+              />
+              <HourlyForecastStrip
+                entries={forecastEntries}
+                timezoneOffset={currentWeather.timezone}
+                unit={unit}
+                isLightTheme={isLightTheme}
+              />
+              <ForecastGrid
+                days={forecastDays}
+                forecastEntries={forecastEntries}
+                timezoneOffset={currentWeather.timezone}
+                unit={unit}
+                isLightTheme={isLightTheme}
+              />
             </div>
+          ) : null}
+
+          {/* Friendly Empty State */}
+          {!isLoading && !currentWeather ? (
+            <motion.section
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              aria-label="Welcome"
+              className="glass-panel rounded-3xl p-8 sm:p-12 text-center max-w-3xl mx-auto mt-4 sm:mt-8 space-y-6"
+              data-testid="empty-state"
+            >
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                className="w-16 h-16 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center mx-auto shadow-lg"
+              >
+                <CloudSun className="w-9 h-9 text-amber-300" aria-hidden="true" />
+              </motion.div>
+              <div className="space-y-2.5 max-w-xl mx-auto">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs font-medium text-white/85 mb-1">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" aria-hidden="true" />
+                  <span>Real-time global weather telemetry</span>
+                </div>
+                <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                  Live Global Weather, Wherever You Look
+                </h1>
+                <p className="text-sm sm:text-base text-white/80 leading-relaxed">
+                  Search any city worldwide or use your current location to view
+                  real-time temperatures, hourly trends, atmospheric metrics, and a 5-day forecast.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  type="button"
+                  onClick={handleUseLocation}
+                  className="h-11 px-5 rounded-xl bg-white text-slate-900 hover:bg-white/90 text-sm font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap shadow-md"
+                >
+                  <MapPin className="w-4 h-4" aria-hidden="true" />
+                  <span>Use My Location</span>
+                </motion.button>
+              </div>
+
+              <div className="pt-4 border-t border-white/15 space-y-2.5">
+                <p className="text-xs font-medium text-white/65">
+                  Or explore live weather in major cities
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {EXPLORE_CITIES.map((city) => (
+                    <motion.button
+                      key={city}
+                      whileHover={{ scale: 1.05, y: -1 }}
+                      whileTap={{ scale: 0.96 }}
+                      type="button"
+                      onClick={() => fetchWeather({ city })}
+                      className="h-9 px-4 rounded-full bg-white/12 hover:bg-white/22 border border-white/20 text-xs font-medium text-white transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      {city}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            </motion.section>
+          ) : null}
+        </main>
+
+        <footer className="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 text-center sm:text-left">
+          <p className={`text-xs ${isLightTheme ? 'text-slate-700/80' : 'text-white/60'}`}>
+            WeatherNow · Live meteorological telemetry &amp; 5-day forecast
+          </p>
+        </footer>
+      </div>
+
+      {/* Toast Notification for Errors */}
+      <AnimatePresence>
+        {toastMessage ? (
+          <motion.div
+            key="error-toast"
+            initial={{ opacity: 0, y: 16, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.95 }}
+            transition={{ duration: 0.22 }}
+            role="status"
+            aria-live="assertive"
+            className="fixed bottom-5 right-5 z-50 max-w-sm rounded-2xl bg-slate-900/95 text-white border border-white/15 shadow-2xl px-4 py-3 flex items-center gap-3 backdrop-blur-md"
+            data-testid="error-toast"
+          >
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" aria-hidden="true" />
+            <p className="text-xs sm:text-sm font-medium flex-1">{toastMessage}</p>
             <button
               type="button"
-              onClick={() => setErrorMessage(null)}
-              aria-label="Dismiss error"
+              onClick={() => setToastMessage(null)}
+              aria-label="Close notification"
               className="p-1 rounded-lg hover:bg-white/10 cursor-pointer shrink-0"
             >
               <X className="w-4 h-4" aria-hidden="true" />
             </button>
-          </div>
+          </motion.div>
         ) : null}
-
-        {/* Loading State */}
-        {isLoading ? (
-          <div
-            role="status"
-            aria-live="polite"
-            className="glass-panel rounded-3xl p-10 sm:p-14 flex flex-col items-center justify-center gap-4 text-center"
-            data-testid="loading-indicator"
-          >
-            <Loader2
-              className={`w-10 h-10 animate-spin ${titleText}`}
-              aria-hidden="true"
-            />
-            <p className={`font-display text-lg font-semibold ${titleText}`}>
-              Fetching live weather...
-            </p>
-            <p className={`text-sm ${subText}`}>
-              Retrieving real-time conditions and 5-day forecast
-            </p>
-          </div>
-        ) : null}
-
-        {/* Weather Dashboard Content */}
-        {!isLoading && currentWeather ? (
-          <div className="space-y-6">
-            <CurrentWeatherPanel
-              weather={currentWeather}
-              unit={unit}
-              isLightTheme={isLightTheme}
-            />
-            <ForecastGrid
-              days={forecastDays}
-              unit={unit}
-              isLightTheme={isLightTheme}
-            />
-          </div>
-        ) : null}
-
-        {/* Friendly Empty State */}
-        {!isLoading && !currentWeather ? (
-          <section
-            aria-label="Welcome"
-            className="glass-panel rounded-3xl p-8 sm:p-12 text-center max-w-3xl mx-auto mt-4 sm:mt-8 space-y-6"
-            data-testid="empty-state"
-          >
-            <div className="w-16 h-16 rounded-2xl bg-white/15 flex items-center justify-center mx-auto">
-              <CloudSun className="w-9 h-9 text-amber-300" aria-hidden="true" />
-            </div>
-            <div className="space-y-2.5 max-w-xl mx-auto">
-              <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white">
-                Live Global Weather, Wherever You Look
-              </h1>
-              <p className="text-sm sm:text-base text-white/80 leading-relaxed">
-                Search any city worldwide or use your current location to view
-                real-time temperatures, atmospheric metrics, and a 5-day forecast.
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
-              <button
-                type="button"
-                onClick={handleUseLocation}
-                className="h-11 px-5 rounded-xl bg-white text-slate-900 hover:bg-white/90 text-sm font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap"
-              >
-                <MapPin className="w-4 h-4" aria-hidden="true" />
-                <span>Use My Location</span>
-              </button>
-            </div>
-
-            <div className="pt-4 border-t border-white/15 space-y-2.5">
-              <p className="text-xs font-medium text-white/65">
-                Or explore live weather in major cities
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                {EXPLORE_CITIES.map((city) => (
-                  <button
-                    key={city}
-                    type="button"
-                    onClick={() => fetchWeather({ city })}
-                    className="h-9 px-4 rounded-full bg-white/12 hover:bg-white/22 border border-white/20 text-xs font-medium text-white transition-colors cursor-pointer whitespace-nowrap"
-                  >
-                    {city}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-        ) : null}
-      </main>
-
-      <footer className="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 text-center sm:text-left">
-        <p className={`text-xs ${isLightTheme ? 'text-slate-700/80' : 'text-white/60'}`}>
-          WeatherNow · Live meteorological telemetry &amp; 5-day forecast
-        </p>
-      </footer>
-
-      {/* Toast Notification for Errors */}
-      {toastMessage ? (
-        <div
-          role="status"
-          aria-live="assertive"
-          className="fixed bottom-5 right-5 z-50 max-w-sm rounded-2xl bg-slate-900/95 text-white border border-white/15 shadow-2xl px-4 py-3 flex items-center gap-3 backdrop-blur-md"
-          data-testid="error-toast"
-        >
-          <AlertCircle className="w-4 h-4 text-red-400 shrink-0" aria-hidden="true" />
-          <p className="text-xs sm:text-sm font-medium flex-1">{toastMessage}</p>
-          <button
-            type="button"
-            onClick={() => setToastMessage(null)}
-            aria-label="Close notification"
-            className="p-1 rounded-lg hover:bg-white/10 cursor-pointer shrink-0"
-          >
-            <X className="w-4 h-4" aria-hidden="true" />
-          </button>
-        </div>
-      ) : null}
+      </AnimatePresence>
     </div>
   );
 }
