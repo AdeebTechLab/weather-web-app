@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>WeatherNow — Project Documentation</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm 16mm 20mm 16mm;
+      @top-left {
+        content: "WeatherNow — Live Global Weather Application";
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 7.5pt;
+        color: #64748b;
+      }
+      @top-right {
+        content: "Project Documentation v1.0";
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 7.5pt;
+        color: #64748b;
+      }
+      @bottom-left {
+        content: "Technical & User Documentation";
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 7.5pt;
+        color: #64748b;
+      }
+      @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 7.5pt;
+        color: #64748b;
+      }
+    }
+
+    @page :first {
+      margin: 0;
+      @top-left { content: none; }
+      @top-right { content: none; }
+      @bottom-left { content: none; }
+      @bottom-right { content: none; }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 9.6pt;
+      line-height: 1.5;
+      color: #1e293b;
+      background: #ffffff;
+    }
+
+    /* Cover Page */
+    .cover-page {
+      width: 210mm;
+      height: 297mm;
+      padding: 26mm 22mm 22mm 22mm;
+      background: linear-gradient(155deg, #0b192c 0%, #16325b 52%, #1d4ed8 100%);
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-after: always;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cover-accent-ring {
+      position: absolute;
+      top: -60mm;
+      right: -50mm;
+      width: 170mm;
+      height: 170mm;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, rgba(245, 158, 11, 0) 68%);
+      pointer-events: none;
+    }
+
+    .cover-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cover-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cover-brand-name {
+      font-size: 18pt;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .cover-hero {
+      position: relative;
+      z-index: 1;
+      margin-top: 16mm;
+    }
+
+    .cover-kicker {
+      font-size: 9.5pt;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #fcd34d;
+      margin-bottom: 12px;
+    }
+
+    .cover-title {
+      font-size: 31pt;
+      font-weight: 800;
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      margin: 0 0 16px 0;
+      color: #ffffff;
+      border: none;
+      padding: 0;
+    }
+
+    .cover-subtitle {
+      font-size: 12pt;
+      line-height: 1.55;
+      color: rgba(248, 250, 252, 0.86);
+      max-width: 155mm;
+      margin: 0;
+    }
+
+    .cover-highlights {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 22mm;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cover-card {
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+
+    .cover-card-title {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0 0 4px 0;
+    }
+
+    .cover-card-desc {
+      font-size: 8.8pt;
+      line-height: 1.45;
+      color: rgba(226, 232, 240, 0.86);
+      margin: 0;
+    }
+
+    .cover-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.18);
+      padding-top: 14px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 9pt;
+      color: rgba(226, 232, 240, 0.84);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Body Typography & Sections */
+    h1 {
+      font-size: 16pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      margin: 20px 0 8px 0;
+      padding-bottom: 5px;
+      border-bottom: 2px solid #0284c7;
+      break-after: avoid;
+    }
+
+    h1.first-section {
+      margin-top: 0;
+    }
+
+    h2 {
+      font-size: 11.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 14px 0 5px 0;
+      break-after: avoid;
+    }
+
+    p {
+      margin: 0 0 7px 0;
+      color: #334155;
+    }
+
+    ul, ol {
+      margin: 0 0 9px 0;
+      padding-left: 19px;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 3.5px;
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 8.3pt;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 1px 4px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    pre {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 8.1pt;
+      line-height: 1.42;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 10px 13px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 7px 0 11px 0;
+      break-inside: avoid;
+    }
+
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      border: none;
+      font-size: inherit;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 12px 0;
+      font-size: 8.6pt;
+    }
+
+    thead {
+      display: table-header-group;
+    }
+
+    tr {
+      break-inside: avoid;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+      text-align: left;
+      padding: 6.5px 9px;
+      border: 1px solid #cbd5e1;
+    }
+
+    td {
+      padding: 6px 9px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+      color: #334155;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    .callout {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 10px 13px;
+      margin: 9px 0 11px 0;
+      break-inside: avoid;
+    }
+
+    .callout-warn {
+      background: #fffbeb;
+      border-color: #fde68a;
+    }
+
+    .callout-title {
+      font-weight: 700;
+      color: #0f172a;
+      font-size: 9.2pt;
+      margin-bottom: 3px;
+    }
+
+    .callout p {
+      margin: 0;
+      font-size: 8.8pt;
+    }
+
+    .toc-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 14px;
+      break-inside: avoid;
+    }
+
+    .toc-title {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 7px 0;
+    }
+
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 3px 20px;
+      font-size: 8.9pt;
+      color: #334155;
+    }
+
+    .diagram-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #ffffff;
+      margin: 8px 0 11px 0;
+      break-inside: avoid;
+    }
+
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 8px 0 12px 0;
+      break-inside: avoid;
+    }
+
+    .theme-swatch {
+      border-radius: 8px;
+      padding: 9px 11px;
+      color: #ffffff;
+      font-size: 8.3pt;
+      line-height: 1.38;
+    }
+
+    .theme-swatch strong {
+      display: block;
+      font-size: 9pt;
+      margin-bottom: 2px;
+    }
+
+    .swatch-clear { background: linear-gradient(135deg, #c2410c, #f59e0b); }
+    .swatch-clouds { background: linear-gradient(135deg, #334155, #1e3a5f); }
+    .swatch-rain { background: linear-gradient(135deg, #09152b, #1d4ed8); }
+    .swatch-snow { background: linear-gradient(135deg, #e0f2fe, #7dd3fc); color: #0f172a; border: 1px solid #bae6fd; }
+    .swatch-storm { background: linear-gradient(135deg, #0b0719, #2e1065); }
+    .swatch-night { background: linear-gradient(135deg, #020617, #2e236c); }
+
+    .status-pass {
+      font-weight: 700;
+      color: #15803d;
+    }
+
+    .status-note {
+      font-weight: 600;
+      color: #b45309;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- COVER PAGE -->
+  <section class="cover-page">
+    <div class="cover-accent-ring"></div>
+
+    <div class="cover-brand">
+      <div class="cover-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v2" />
+          <path d="m4.93 4.93 1.41 1.41" />
+          <path d="M20 12h2" />
+          <path d="m19.07 4.93-1.41 1.41" />
+          <path d="M15.947 12.65a4 4 0 0 0-5.925-4.128" />
+          <path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z" />
+        </svg>
+      </div>
+      <span class="cover-brand-name">WeatherNow</span>
+    </div>
+
+    <div class="cover-hero">
+      <div class="cover-kicker">Project Technical &amp; User Documentation</div>
+      <div class="cover-title">Live Global Weather &amp; 5-Day Forecast Application</div>
+      <p class="cover-subtitle">
+        Comprehensive architecture, API integration, component design, pure-logic specification, deployment guide, and quality assurance documentation for the WeatherNow web application and standalone frontend package.
+      </p>
+
+      <div class="cover-highlights">
+        <div class="cover-card">
+          <p class="cover-card-title">Genuine Real-Time Weather</p>
+          <p class="cover-card-desc">Live global conditions and 5-day forecasts via OpenWeatherMap API with automatic Open-Meteo meteorological fallback—zero mock data.</p>
+        </div>
+        <div class="cover-card">
+          <p class="cover-card-title">Dynamic Atmospheric Themes</p>
+          <p class="cover-card-desc">Six condition-aware and sunrise/sunset-driven visual themes (Clear, Clouds, Rain, Snow, Thunderstorm, Night) with glassmorphic depth.</p>
+        </div>
+        <div class="cover-card">
+          <p class="cover-card-title">Dual-Format Deliverable</p>
+          <p class="cover-card-desc">Full-stack Next.js TypeScript application with secure server-side proxy plus standalone HTML5, Tailwind CSS, CSS3, and Vanilla JS package.</p>
+        </div>
+        <div class="cover-card">
+          <p class="cover-card-title">Verified &amp; Responsive</p>
+          <p class="cover-card-desc">Unit-tested calculation engine, ESLint &amp; TypeScript verified, and browser-tested from 360px mobile to 1440px desktop viewports.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <span>Version 1.0 · Technical Reference</span>
+      <span>WeatherNow Documentation</span>
+      <span>November 2026</span>
+    </div>
+  </section>
+
+  <!-- BODY CONTENT -->
+  <div class="content">
+
+    <!-- TOC -->
+    <div class="toc-box">
+      <p class="toc-title">Table of Contents</p>
+      <div class="toc-grid">
+        <div><strong>1.</strong> Executive Summary &amp; Overview</div>
+        <div><strong>6.</strong> Component &amp; JavaScript Architecture</div>
+        <div><strong>2.</strong> System Architecture &amp; Data Flow</div>
+        <div><strong>7.</strong> Responsive Design &amp; Accessibility</div>
+        <div><strong>3.</strong> Project Structure &amp; Tech Stack</div>
+        <div><strong>8.</strong> Setup, Local Execution &amp; Deployment</div>
+        <div><strong>4.</strong> API Integration &amp; Security Model</div>
+        <div><strong>9.</strong> Testing &amp; Quality Assurance Report</div>
+        <div><strong>5.</strong> Core Functional Specifications</div>
+        <div><strong>10.</strong> Troubleshooting &amp; Maintenance</div>
+      </div>
+    </div>
+
+    <!-- SECTION 1 -->
+    <h1 class="first-section">1. Executive Summary &amp; Overview</h1>
+    <p>
+      <strong>WeatherNow</strong> is a responsive, real-time global weather and 5-day forecast dashboard designed to fetch live meteorological conditions for any city worldwide or from the user's current geographic coordinates. The project strictly avoids hardcoded or simulated weather values: every temperature, atmospheric metric, local timestamp, weather icon, and multi-day forecast is calculated from live network telemetry.
+    </p>
+    <p>
+      To support both immediate cloud-hosted execution and lightweight static hosting, the repository provides two synchronized implementations:
+    </p>
+    <ul>
+      <li><strong>Hosted Web Application (Next.js 15 + TypeScript + Tailwind CSS v4)</strong>: Powers the live application on port 3000 with a dedicated server-side API route (<code>/api/weather</code>), keeping API credentials off the client and ensuring instant global weather lookup out of the box.</li>
+      <li><strong>Standalone Static Package (<code>weather-app/</code>)</strong>: A dependency-free HTML5, Tailwind CSS CDN, custom CSS3, and Vanilla ES6+ JavaScript implementation designed for VS Code Live Server, GitHub Pages, or Netlify using a personal OpenWeatherMap API key.</li>
+    </ul>
+
+    <!-- SECTION 2 -->
+    <h1>2. System Architecture &amp; Data Flow</h1>
+    <p>
+      WeatherNow separates presentation, pure meteorological transformation logic, and external network communication into cleanly decoupled layers. In-flight requests are coordinated using <code>AbortController</code> and monotonically increasing sequence tokens to prevent race conditions when users type rapidly or switch cities quickly.
+    </p>
+
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 205" width="100%" height="195" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569" />
+          </marker>
+        </defs>
+        <rect x="12" y="16" width="175" height="170" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" />
+        <text x="99" y="38" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">Client UI Layer</text>
+        <rect x="26" y="50" width="147" height="28" rx="6" fill="#e0f2fe" stroke="#38bdf8" />
+        <text x="99" y="68" text-anchor="middle" font-size="9.5" fill="#0c4a6e">Search / Geolocation</text>
+        <rect x="26" y="88" width="147" height="28" rx="6" fill="#e0f2fe" stroke="#38bdf8" />
+        <text x="99" y="106" text-anchor="middle" font-size="9.5" fill="#0c4a6e">°C / °F &amp; Theme Engine</text>
+        <rect x="26" y="126" width="147" height="28" rx="6" fill="#fef3c7" stroke="#f59e0b" />
+        <text x="99" y="144" text-anchor="middle" font-size="9.5" fill="#78350f">LocalStorage (Last 5)</text>
+
+        <rect x="235" y="44" width="185" height="114" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5" />
+        <text x="327" y="68" text-anchor="middle" font-size="11" font-weight="700" fill="#1e3a8a">Server API Proxy</text>
+        <text x="327" y="86" text-anchor="middle" font-size="9.5" fill="#1e40af">GET /api/weather</text>
+        <text x="327" y="104" text-anchor="middle" font-size="8.5" fill="#334155">?city=... | ?lat=...&amp;lon=...</text>
+        <text x="327" y="124" text-anchor="middle" font-size="8.5" fill="#475569">10s Timeout · Unified Schema</text>
+        <text x="327" y="140" text-anchor="middle" font-size="8.5" fill="#475569">Normalized Error Codes</text>
+
+        <rect x="475" y="14" width="250" height="78" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" />
+        <text x="600" y="36" text-anchor="middle" font-size="10.5" font-weight="700" fill="#14532d">OpenWeatherMap API (Primary)</text>
+        <text x="600" y="53" text-anchor="middle" font-size="8.5" fill="#166534">/data/2.5/weather &amp; /data/2.5/forecast</text>
+        <text x="600" y="69" text-anchor="middle" font-size="8.5" fill="#166534">Used when OPENWEATHER_API_KEY is set</text>
+
+        <rect x="475" y="110" width="250" height="78" rx="10" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.5" />
+        <text x="600" y="132" text-anchor="middle" font-size="10.5" font-weight="700" fill="#4c1d95">Live Open-Meteo Fallback</text>
+        <text x="600" y="149" text-anchor="middle" font-size="8.5" fill="#5b21b6">Geocoding + Live Forecast + Reverse Geo</text>
+        <text x="600" y="165" text-anchor="middle" font-size="8.5" fill="#5b21b6">Mapped via WMO → OWM icon/condition codes</text>
+
+        <line x1="187" y1="101" x2="233" y2="101" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)" marker-start="url(#arrow)" />
+        <line x1="420" y1="78" x2="473" y2="53" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)" />
+        <line x1="420" y1="124" x2="473" y2="148" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)" />
+      </svg>
+    </div>
+
+    <h2>Request &amp; State Lifecycle</h2>
+    <ol>
+      <li><strong>User Trigger</strong>: The user enters a city name (Enter or Search button), selects a recent city chip, or clicks <em>Use My Location</em>.</li>
+      <li><strong>Race-Condition Guard</strong>: Any previous in-flight fetch is aborted via <code>AbortController.abort()</code>, and a sequence counter ensures stale responses never overwrite newer queries.</li>
+      <li><strong>Live Retrieval</strong>: The client invokes <code>/api/weather</code> (or OpenWeatherMap endpoints directly in the standalone <code>weather-app/</code> bundle).</li>
+      <li><strong>Pure Processing</strong>: Raw Celsius data is stored intact; 3-hour forecast entries are grouped by city-local calendar date; the atmospheric theme is resolved from condition + sunrise/sunset timestamps.</li>
+      <li><strong>Render &amp; Persist</strong>: The dashboard updates smoothly with tabular numerals and official OpenWeatherMap icons, and saves the resolved city to <code>localStorage</code>.</li>
+    </ol>
+
+    <!-- SECTION 3 -->
+    <h1>3. Project Structure &amp; Tech Stack</h1>
+
+    <h2>Technology Stack</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%;">Layer</th>
+          <th style="width:39%;">Hosted Next.js Application</th>
+          <th style="width:39%;">Standalone Package (<code>weather-app/</code>)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Markup &amp; UI</strong></td>
+          <td>Next.js 15 (App Router), React 19, TypeScript 5.9</td>
+          <td>Semantic HTML5 (<code>index.html</code>)</td>
+        </tr>
+        <tr>
+          <td><strong>Styling</strong></td>
+          <td>Tailwind CSS v4 + Custom CSS3 (<code>app/globals.css</code>)</td>
+          <td>Tailwind CSS Official CDN + Custom CSS3 (<code>style.css</code>)</td>
+        </tr>
+        <tr>
+          <td><strong>Application Logic</strong></td>
+          <td>Modular TSX Components + Pure TS Utilities (<code>lib/weather-utils.ts</code>)</td>
+          <td>Modular Vanilla JavaScript ES6+ (<code>script.js</code>)</td>
+        </tr>
+        <tr>
+          <td><strong>Animations &amp; Icons</strong></td>
+          <td>Motion (<code>motion/react</code>), Lucide Icons, Official OWM PNG Icons</td>
+          <td>CSS3 Keyframes &amp; Transitions, Inline SVGs, Official OWM PNG Icons</td>
+        </tr>
+        <tr>
+          <td><strong>Typography</strong></td>
+          <td>Plus Jakarta Sans, DM Sans, JetBrains Mono (via <code>next/font/google</code>)</td>
+          <td>Plus Jakarta Sans, DM Sans, JetBrains Mono (Google Fonts CDN)</td>
+        </tr>
+        <tr>
+          <td><strong>Weather Data</strong></td>
+          <td><code>/api/weather</code> (OpenWeatherMap API + Live Open-Meteo fallback)</td>
+          <td>OpenWeatherMap Current Weather &amp; 5-Day Forecast REST APIs</td>
+        </tr>
+        <tr>
+          <td><strong>Persistence &amp; Sensors</strong></td>
+          <td>Browser <code>localStorage</code> &amp; <code>navigator.geolocation</code></td>
+          <td>Browser <code>localStorage</code> &amp; <code>navigator.geolocation</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Repository Directory Tree</h2>
+    <pre><code>├── app/
+│   ├── api/weather/route.ts       # Server-side weather proxy (OWM + Open-Meteo fallback)
+│   ├── globals.css                # Tailwind v4 import, 7 dynamic themes &amp; glassmorphism
+│   ├── layout.tsx                 # Root HTML layout, fonts, OpenGraph &amp; Twitter metadata
+│   └── page.tsx                   # Entry page mounting WeatherDashboard
+├── components/
+│   ├── WeatherDashboard.tsx       # Main client state container, fetch &amp; geolocation logic
+│   ├── WeatherHeader.tsx          # Brand logo, search bar, °C/°F toggle, location trigger
+│   ├── RecentSearches.tsx         # Clickable recent city chips + Clear history control
+│   ├── CurrentWeatherPanel.tsx    # Hero temperature display + 6 atmospheric metric cards
+│   ├── ForecastGrid.tsx           # 5 interactive daily forecast cards with highs &amp; lows
+│   └── WeatherIcon.tsx            # Official OWM icon loader with graceful SVG fallback
+├── lib/
+│   ├── weather-utils.ts           # Pure logic: conversion, grouping, themes, WMO mapping
+│   └── weather-utils.test.ts      # Node built-in unit test suite (7 automated tests)
+├── weather-app/                   # Standalone HTML/CSS/Vanilla JS deliverable
+│   ├── index.html                 # Complete semantic HTML5 document + Tailwind CDN
+│   ├── style.css                  # Custom CSS3 themes, glassmorphism &amp; animations
+│   ├── script.js                  # Modular ES6+ OpenWeatherMap integration
+│   └── README.md                  # API key setup, Live Server, GitHub &amp; Netlify guide
+├── public/
+│   └── WeatherNow_Project_Documentation.pdf
+├── .env.example                   # Environment variable template (OPENWEATHER_API_KEY)
+└── metadata.json                  # App metadata &amp; geolocation permission declaration</code></pre>
+
+    <!-- SECTION 4 -->
+    <h1>4. API Integration &amp; Security Model</h1>
+
+    <h2>OpenWeatherMap REST Endpoints</h2>
+    <p>Both the server proxy (when configured with <code>OPENWEATHER_API_KEY</code>) and the standalone <code>weather-app/script.js</code> integrate directly with the official OpenWeatherMap v2.5 endpoints using metric units (Celsius, m/s):</p>
+    <pre><code># Current Weather by City Name
+GET https://api.openweathermap.org/data/2.5/weather?q={city}&amp;appid={API_KEY}&amp;units=metric
+
+# 5-Day / 3-Hour Forecast by City Name
+GET https://api.openweathermap.org/data/2.5/forecast?q={city}&amp;appid={API_KEY}&amp;units=metric
+
+# Coordinate-Based Queries (Geolocation)
+GET https://api.openweathermap.org/data/2.5/weather?lat={lat}&amp;lon={lon}&amp;appid={API_KEY}&amp;units=metric
+GET https://api.openweathermap.org/data/2.5/forecast?lat={lat}&amp;lon={lon}&amp;appid={API_KEY}&amp;units=metric
+
+# Official Weather Condition Icons
+https://openweathermap.org/img/wn/{icon}@2x.png</code></pre>
+
+    <h2>Server-Side Proxy Contract (<code>GET /api/weather</code>)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%;">Parameter / Status</th>
+          <th style="width:78%;">Behavior &amp; Response Specification</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>?city={name}</code></td>
+          <td>Fetches live current weather and 5-day 3-hour forecast for the specified city worldwide.</td>
+        </tr>
+        <tr>
+          <td><code>?lat={n}&amp;lon={n}</code></td>
+          <td>Fetches live current weather and 5-day forecast for browser GPS coordinates, plus city/country resolution.</td>
+        </tr>
+        <tr>
+          <td><code>200 OK</code></td>
+          <td>Returns <code>{ current: CurrentWeatherData, forecast: ForecastResponseData, source: "openweathermap" | "open-meteo" }</code>.</td>
+        </tr>
+        <tr>
+          <td><code>400 Bad Request</code></td>
+          <td>Missing both city name and valid numeric coordinates.</td>
+        </tr>
+        <tr>
+          <td><code>401 Unauthorized</code></td>
+          <td>Configured OpenWeatherMap API key is invalid or not yet activated.</td>
+        </tr>
+        <tr>
+          <td><code>404 Not Found</code></td>
+          <td>Returns <code>{ error: "City not found. Please check the spelling." }</code>.</td>
+        </tr>
+        <tr>
+          <td><code>429 Too Many Requests</code></td>
+          <td>OpenWeatherMap free-tier rate limit exceeded; advises retrying shortly.</td>
+        </tr>
+        <tr>
+          <td><code>504 Gateway Timeout</code></td>
+          <td>Upstream weather service exceeded the 10-second abort timeout.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">API Key Security Guidance</div>
+      <p>
+        In the standalone frontend-only package (<code>weather-app/script.js</code>), placing an <code>API_KEY</code> in client-side JavaScript means visitors can view it in browser DevTools or the Network inspector. This is acceptable for local learning or personal testing with free-tier rate limits, but <strong>production deployments should always route requests through a server-side proxy</strong>—exactly as implemented in <code>app/api/weather/route.ts</code> using the server-only <code>OPENWEATHER_API_KEY</code> environment variable.
+      </p>
+    </div>
+
+    <!-- SECTION 5 -->
+    <h1>5. Core Functional Specifications</h1>
+
+    <h2>5.1 Temperature Unit Conversion (°C ↔ °F)</h2>
+    <p>
+      Raw API temperatures are always retained internally in degrees Celsius. When the user switches between <code>°C</code> and <code>°F</code>, the pure helper <code>convertTemperature(celsius, unit)</code> recalculates the current temperature, feels-like temperature, and all five daily forecast highs and lows instantaneously without triggering extra API calls:
+    </p>
+    <pre><code>F = Math.round((C * 9 / 5) + 32)</code></pre>
+    <p>The selected unit is persisted to <code>localStorage</code> under the key <code>weathernow_temp_unit</code>.</p>
+
+    <h2>5.2 Genuine 5-Day Forecast Grouping</h2>
+    <p>
+      OpenWeatherMap's <code>/forecast</code> endpoint returns 3-hour interval entries (up to 40 data points across 5 days). The <code>groupForecastByLocalDate()</code> engine converts each entry's UNIX timestamp into the target city's local calendar date (<code>YYYY-MM-DD</code>) using the city's <code>timezone</code> offset in seconds:
+    </p>
+    <ul>
+      <li>Groups all 3-hour entries belonging to each local calendar day.</li>
+      <li>Computes each day's genuine forecast maximum (<code>Math.max</code> of <code>temp_max</code>) and minimum (<code>Math.min</code> of <code>temp_min</code>)—never inventing or hardcoding values.</li>
+      <li>Selects the entry closest to 12:00 local time as the representative midday weather condition and official icon.</li>
+      <li>Displays the upcoming 5 calendar days (or all available grouped days up to 5).</li>
+    </ul>
+
+    <h2>5.3 Dynamic Atmospheric Themes</h2>
+    <p>
+      The background palette adapts automatically via <code>determineWeatherTheme()</code> using the real weather condition (<code>weather[0].main</code>) and the city's actual local day/night state derived from comparing current UNIX time <code>dt</code> against <code>sys.sunrise</code> and <code>sys.sunset</code>:
+    </p>
+
+    <div class="theme-grid">
+      <div class="theme-swatch swatch-clear">
+        <strong>Clear (Day)</strong>
+        Warm orange, amber &amp; sky blue gradient
+      </div>
+      <div class="theme-swatch swatch-clouds">
+        <strong>Clouds / Mist</strong>
+        Slate grey &amp; cool steel blue gradient
+      </div>
+      <div class="theme-swatch swatch-rain">
+        <strong>Rain / Drizzle</strong>
+        Deep navy &amp; cobalt blue gradient
+      </div>
+      <div class="theme-swatch swatch-snow">
+        <strong>Snow / Sleet</strong>
+        Icy light blue &amp; crisp white (dark text contrast)
+      </div>
+      <div class="theme-swatch swatch-storm">
+        <strong>Thunderstorm</strong>
+        Midnight indigo &amp; deep violet gradient
+      </div>
+      <div class="theme-swatch swatch-night">
+        <strong>Night (After Sunset)</strong>
+        Dark navy &amp; nocturnal purple gradient
+      </div>
+    </div>
+
+    <h2>5.4 Geolocation, Recent Searches &amp; Error Resilience</h2>
+    <ul>
+      <li><strong>Use My Location</strong>: Invokes <code>navigator.geolocation.getCurrentPosition()</code> with a 10-second timeout. On grant, queries live weather and forecast by latitude/longitude and displays the detected city. Explicitly handles <code>PERMISSION_DENIED</code>, <code>POSITION_UNAVAILABLE</code>, <code>TIMEOUT</code>, and unsupported browsers.</li>
+      <li><strong>Recent Searches</strong>: Stored in <code>localStorage</code> under <code>weathernow_recent_searches</code>. Enforces case-insensitive deduplication, moves the most recent search to the front, caps history at 5 cities, renders clickable chips, supports a <em>Clear</em> action, and automatically restores the last searched city on page reload.</li>
+      <li><strong>Loading &amp; Error States</strong>: Displays an animated spinner with <em>"Fetching live weather..."</em>, cancels superseded requests via <code>AbortController</code>, and surfaces errors in both a dismissible inline alert banner (<code>role="alert"</code>) and a 5-second auto-dismissing toast notification (<code>aria-live="assertive"</code>).</li>
+    </ul>
+
+    <!-- SECTION 6 -->
+    <h1>6. Component &amp; JavaScript Architecture</h1>
+
+    <h2>Next.js Component Hierarchy</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:26%;">Component</th>
+          <th style="width:74%;">Responsibility</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>WeatherDashboard.tsx</code></td>
+          <td>Root client controller managing current weather, 5-day forecast, unit toggle, recent search persistence, geolocation callbacks, abort controller, loading state, dynamic theme class, and error toast/banner.</td>
+        </tr>
+        <tr>
+          <td><code>WeatherHeader.tsx</code></td>
+          <td>Single-bar glassmorphic header containing the WeatherNow emblem, accessible search form (<code>role="search"</code>), segmented <code>°C</code>/<code>°F</code> buttons (responsive mobile + desktop placement), and <em>Use My Location</em> button.</td>
+        </tr>
+        <tr>
+          <td><code>RecentSearches.tsx</code></td>
+          <td>Horizontal wrapping navigation strip (<code>aria-label="Recent searches"</code>) displaying up to 5 clickable city chips with active highlighting and a <em>Clear</em> control.</td>
+        </tr>
+        <tr>
+          <td><code>CurrentWeatherPanel.tsx</code></td>
+          <td>Displays resolved city and full English country name (via <code>Intl.DisplayNames</code>), city-local formatted date/time, large tabular temperature, feels-like reading, floating official OWM icon inside a subtle translucent halo, and 6 atmospheric glass cards (Humidity, Wind Speed, Pressure, Visibility, Sunrise, Sunset).</td>
+        </tr>
+        <tr>
+          <td><code>ForecastGrid.tsx</code></td>
+          <td>Responsive 1→2→5 column grid of interactive daily forecast cards showing weekday, date, official OWM weather icon, condition, description, and tabular High/Low temperatures.</td>
+        </tr>
+        <tr>
+          <td><code>WeatherIcon.tsx</code></td>
+          <td>Renders official <code>https://openweathermap.org/img/wn/{icon}@2x.png</code> icons with <code>referrerPolicy="no-referrer"</code> and an automatic Lucide vector fallback if the image fails to load.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Standalone Vanilla JS Function Reference (<code>weather-app/script.js</code>)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:31%;">Function Name</th>
+          <th style="width:69%;">Purpose &amp; Behavior</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>initializeApp()</code></td><td>Loads persisted searches, binds form/button/unit event listeners, and restores the most recent city.</td></tr>
+        <tr><td><code>searchCity(rawCity)</code></td><td>Validates input and API key, cancels prior fetches, awaits current + forecast requests in parallel.</td></tr>
+        <tr><td><code>fetchCurrentWeather(city, signal)</code></td><td>Calls OpenWeatherMap <code>/data/2.5/weather</code> with metric units and passes response to error handler.</td></tr>
+        <tr><td><code>fetchForecast(city, signal)</code></td><td>Calls OpenWeatherMap <code>/data/2.5/forecast</code> with metric units and returns parsed JSON.</td></tr>
+        <tr><td><code>fetchWeatherByCoordinates(lat, lon)</code></td><td>Fetches live current weather and 5-day forecast using browser GPS coordinates.</td></tr>
+        <tr><td><code>getUserLocation()</code></td><td>Requests browser Geolocation permission and routes coordinates or user-friendly error messages.</td></tr>
+        <tr><td><code>displayCurrentWeather(data)</code></td><td>Safely updates DOM text nodes and official weather icon using <code>textContent</code> (XSS-safe).</td></tr>
+        <tr><td><code>displayForecast(entries, tz, dt)</code></td><td>Groups 3-hour entries by local calendar date, calculates true highs/lows, and renders 5 forecast cards.</td></tr>
+        <tr><td><code>updateWeatherBackground(data)</code></td><td>Applies condition and day/night theme classes (<code>theme-clear</code>, <code>theme-clouds</code>, <code>theme-rain</code>, <code>theme-snow</code>, <code>theme-thunderstorm</code>, <code>theme-night</code>).</td></tr>
+        <tr><td><code>convertTemperature(c, unit)</code></td><td>Converts Celsius values to rounded °C or °F using <code>(C * 9/5) + 32</code>.</td></tr>
+        <tr><td><code>toggleTemperatureUnit(nextUnit)</code></td><td>Updates active unit state, button styles, and re-renders current and forecast temperatures.</td></tr>
+        <tr><td><code>saveRecentSearch(cityName)</code></td><td>Deduplicates case-insensitively, prepends latest search, caps at 5, and writes to <code>localStorage</code>.</td></tr>
+        <tr><td><code>loadRecentSearches()</code></td><td>Safely parses persisted search array from <code>localStorage</code> with error fallback.</td></tr>
+        <tr><td><code>displayRecentSearches()</code></td><td>Renders clickable city buttons dynamically and toggles visibility when history is empty.</td></tr>
+        <tr><td><code>showLoading(isLoading)</code></td><td>Toggles the animated loading spinner and hides stale inline error alerts during active requests.</td></tr>
+        <tr><td><code>showError(message)</code></td><td>Displays the error message in both the inline alert banner and auto-dismissing toast notification.</td></tr>
+      </tbody>
+    </table>
+
+    <!-- SECTION 7 -->
+    <h1>7. Responsive Design &amp; Accessibility</h1>
+    <p>
+      The interface is built mobile-first using Tailwind responsive breakpoints (<code>sm:</code>, <code>md:</code>, <code>lg:</code>, <code>xl:</code>) alongside custom CSS media queries and WCAG-aligned contrast rules:
+    </p>
+    <ul>
+      <li><strong>Mobile (360px)</strong>: Header stacks cleanly into logo + compact °C/°F switch, full-width search bar, and full-width <em>Use My Location</em> button. Atmospheric metrics form a 2-column grid and 5-day forecast cards switch to horizontal scannable rows. Verified zero horizontal overflow (<code>scrollWidth === 360</code>).</li>
+      <li><strong>Tablet (768px)</strong>: Metrics expand to a 3-column grid; forecast cards organize into a balanced 2-column grid.</li>
+      <li><strong>Desktop (1200px – 1440px)</strong>: Single-row glassmorphic header, hero current weather panel, 6-column atmospheric card strip, and 5-column forecast row fit cleanly above the fold on <code>1440×900</code>.</li>
+      <li><strong>Accessibility &amp; Motion</strong>: Uses semantic landmarks (<code>&lt;header&gt;</code>, <code>&lt;nav&gt;</code>, <code>&lt;main&gt;</code>, <code>&lt;footer&gt;</code>), screen-reader form labels, <code>aria-pressed</code> states on unit toggles and forecast cards, <code>role="status"</code> / <code>role="alert"</code> live regions, tabular numerals (<code>tabular-nums</code>), light-surface contrast inversions for the Snow theme, and <code>prefers-reduced-motion</code> support.</li>
+    </ul>
+
+    <!-- SECTION 8 -->
+    <h1>8. Setup, Local Execution &amp; Deployment</h1>
+
+    <h2>8.1 Running the Full-Stack Next.js Application</h2>
+    <pre><code># 1. Install dependencies
+npm install
+
+# 2. (Optional) Configure your OpenWeatherMap API key in .env.local
+#    If omitted, /api/weather automatically queries live Open-Meteo APIs.
+OPENWEATHER_API_KEY="your_openweathermap_api_key"
+
+# 3. Start the development server on http://localhost:3000
+npm run dev
+
+# 4. Run production build &amp; linter
+npm run build
+npm run lint</code></pre>
+
+    <h2>8.2 Running the Standalone <code>weather-app/</code> with VS Code Live Server</h2>
+    <ol>
+      <li>Create a free account at <code>https://openweathermap.org/</code> and copy your API key from <strong>My API Keys</strong>.</li>
+      <li>Open <code>weather-app/script.js</code> and set <code>const API_KEY = 'your_actual_api_key';</code>.</li>
+      <li>Open the <code>weather-app/</code> folder in Visual Studio Code and install the <strong>Live Server</strong> extension.</li>
+      <li>Right-click <code>index.html</code> and choose <strong>Open with Live Server</strong> (runs over <code>http://127.0.0.1:5500</code> so Geolocation and <code>localStorage</code> work properly).</li>
+    </ol>
+
+    <h2>8.3 GitHub Upload &amp; Static Deployment</h2>
+    <pre><code># Push standalone package to GitHub
+cd weather-app
+git init
+git add index.html style.css script.js README.md
+git commit -m "Initial commit: WeatherNow live global weather application"
+git branch -M main
+git remote add origin https://github.com/&lt;your-username&gt;/weathernow.git
+git push -u origin main</code></pre>
+    <ul>
+      <li><strong>GitHub Pages</strong>: Repository → <em>Settings</em> → <em>Pages</em> → Deploy from branch <code>main</code> / <code>(root)</code> → Save.</li>
+      <li><strong>Netlify</strong>: Connect the GitHub repository (or drag-and-drop <code>weather-app/</code> into Netlify Drop) with an empty build command and publish directory <code>.</code>.</li>
+      <li><strong>Production Next.js Hosting (Vercel / Cloud Run)</strong>: Deploy the repository root and set <code>OPENWEATHER_API_KEY</code> as a server-side secret environment variable.</li>
+    </ul>
+
+    <!-- SECTION 9 -->
+    <h1>9. Testing &amp; Quality Assurance Report</h1>
+
+    <h2>9.1 Automated Unit Tests (<code>lib/weather-utils.test.ts</code>)</h2>
+    <p>Executed via <code>npx --yes tsx --test lib/weather-utils.test.ts</code> — <strong>7 of 7 tests passing</strong>:</p>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:10%;">Result</th>
+          <th style="width:90%;">Test Specification</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="status-pass">PASS</td><td><code>convertTemperature</code> converts Celsius to Fahrenheit accurately using <code>F = (C × 9/5) + 32</code> (0°C→32°F, 100°C→212°F, 20°C→68°F, -40°C→-40°F).</td></tr>
+        <tr><td class="status-pass">PASS</td><td><code>groupForecastByLocalDate</code> aggregates 3-hour entries by local calendar date and computes true daily highs and lows across timezone offsets.</td></tr>
+        <tr><td class="status-pass">PASS</td><td><code>determineWeatherTheme</code> resolves Clear, Clouds, Rain, Snow, Thunderstorm, and Night palettes from condition + sunrise/sunset timestamps.</td></tr>
+        <tr><td class="status-pass">PASS</td><td><code>addRecentSearch</code> deduplicates case-insensitively, keeps latest search first, and enforces the 5-city cap.</td></tr>
+        <tr><td class="status-pass">PASS</td><td><code>formatCityLocalDateTime</code> &amp; <code>formatSunTime</code> format UNIX timestamps accurately in the target city's timezone.</td></tr>
+        <tr><td class="status-pass">PASS</td><td><code>mapWmoToOwm</code> maps WMO weather interpretation codes to authentic OpenWeatherMap conditions and day/night icon codes.</td></tr>
+        <tr><td class="status-pass">PASS</td><td><code>getCountryName</code> converts 2-letter ISO region codes (<code>JP</code>, <code>GB</code>, <code>IS</code>) into readable English country names.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>9.2 Build, Lint &amp; Live Browser Verification Matrix</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:30%;">Verification Check</th>
+          <th style="width:14%;">Status</th>
+          <th style="width:56%;">Observed Evidence</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Next.js Production Build &amp; TypeScript</td>
+          <td class="status-pass">PASSED</td>
+          <td><code>next build</code> compiled cleanly with zero TypeScript errors.</td>
+        </tr>
+        <tr>
+          <td>ESLint Static Analysis</td>
+          <td class="status-pass">PASSED</td>
+          <td><code>eslint .</code> passed with 0 errors and 0 warnings.</td>
+        </tr>
+        <tr>
+          <td>Live Global City Searches (3+ Cities)</td>
+          <td class="status-pass">PASSED</td>
+          <td>Verified live telemetry for Tokyo, London, and Reykjavik with real local times, atmospheric metrics, and 5-day forecasts.</td>
+        </tr>
+        <tr>
+          <td>°C / °F Unit Conversion</td>
+          <td class="status-pass">PASSED</td>
+          <td>Confirmed live recalculation of current, feels-like, and all 5-day High/Low values and unit persistence across reloads.</td>
+        </tr>
+        <tr>
+          <td>Recent Searches Persistence</td>
+          <td class="status-pass">PASSED</td>
+          <td>Verified <code>localStorage</code> history survived full page reload with latest-first ordering.</td>
+        </tr>
+        <tr>
+          <td>Invalid City Error Handling</td>
+          <td class="status-pass">PASSED</td>
+          <td>Searching <code>InvalidCityXYZ999</code> displayed <em>"City not found. Please check the spelling."</em> in banner and toast without crashing.</td>
+        </tr>
+        <tr>
+          <td>Responsive Layout (360px &amp; 1440px)</td>
+          <td class="status-pass">PASSED</td>
+          <td>Zero horizontal overflow at 360px mobile (<code>scrollWidth: 360</code>); full hero, 6 metrics, and 5-day forecast visible on 1440×900 desktop.</td>
+        </tr>
+        <tr>
+          <td>Hardware GPS &amp; Personal OWM Key</td>
+          <td class="status-note">USER STEP</td>
+          <td>Browser GPS prompt and personal OpenWeatherMap key activation in <code>weather-app/script.js</code> should be tested on the user's local machine.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- SECTION 10 -->
+    <h1>10. Troubleshooting &amp; Maintenance</h1>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:30%;">Symptom</th>
+          <th style="width:70%;">Cause &amp; Resolution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>401 Invalid API Key</strong> (Standalone)</td>
+          <td>New OpenWeatherMap keys can take 15–30 minutes to activate after signup. Confirm the key in <code>weather-app/script.js</code> matches your dashboard without trailing spaces.</td>
+        </tr>
+        <tr>
+          <td><strong>Geolocation Blocked</strong></td>
+          <td>Browsers restrict <code>navigator.geolocation</code> to <code>https://</code> or <code>http://localhost</code> / <code>127.0.0.1</code>. Always run via Live Server or HTTPS rather than opening <code>file://</code> directly.</td>
+        </tr>
+        <tr>
+          <td><strong>429 Rate Limit Exceeded</strong></td>
+          <td>OpenWeatherMap free tier allows 60 calls/minute. Wait one minute or add server-side response caching (e.g., 5-minute TTL per city) in <code>app/api/weather/route.ts</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <div class="callout-title">Document Summary</div>
+      <p>
+        This PDF documentation was generated directly from the verified WeatherNow codebase and reflects all implemented files, API contracts, pure-logic tests, and browser verification outcomes.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>
