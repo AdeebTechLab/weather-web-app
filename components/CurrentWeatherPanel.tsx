@@ -33,7 +33,7 @@ export default function CurrentWeatherPanel({
   unit,
   isLightTheme,
 }: CurrentWeatherPanelProps) {
-  const condition = weather.weather[0] || {
+  const condition = weather.weather?.[0] || {
     id: 800,
     main: 'Clear',
     description: 'clear sky',
@@ -43,15 +43,19 @@ export default function CurrentWeatherPanel({
   const displayTemp = convertTemperature(weather.main.temp, unit);
   const displayFeelsLike = convertTemperature(weather.main.feels_like, unit);
   const localDateTime = formatCityLocalDateTime(weather.dt, weather.timezone);
-  const sunriseTime = weather.sys.sunrise
+  const sunriseTime = weather.sys?.sunrise
     ? formatSunTime(weather.sys.sunrise, weather.timezone)
     : '—';
-  const sunsetTime = weather.sys.sunset
+  const sunsetTime = weather.sys?.sunset
     ? formatSunTime(weather.sys.sunset, weather.timezone)
     : '—';
   const visibilityKm =
     typeof weather.visibility === 'number'
       ? `${(weather.visibility / 1000).toFixed(1)} km`
+      : '—';
+  const windSpeedText =
+    typeof weather.wind?.speed === 'number'
+      ? `${weather.wind.speed.toFixed(1)} m/s`
       : '—';
 
   const titleText = isLightTheme ? 'text-slate-900' : 'text-white';
@@ -66,7 +70,7 @@ export default function CurrentWeatherPanel({
     },
     {
       label: 'Wind Speed',
-      value: `${weather.wind.speed.toFixed(1)} m/s`,
+      value: windSpeedText,
       icon: Wind,
     },
     {
