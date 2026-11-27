@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   mapWmoToOwm,
+  normalizeGoogleWeatherAlerts,
+  normalizeNwsAlerts,
   type CurrentWeatherData,
   type ForecastEntry,
   type ForecastResponseData,
+  type WeatherAlert,
 } from '@/lib/weather-utils';
+import { getGoogleMapsApiKey, getOpenWeatherApiKey } from '@/lib/maps-config';
+
+export const dynamic = 'force-dynamic';
 
 const REQUEST_TIMEOUT_MS = 10000;
 
@@ -144,7 +150,7 @@ async function fetchFromLiveOpenMeteo(params: {
 
   const meteoUrl =
     `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
-    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,surface_pressure,wind_speed_10m,cloud_cover` +
+    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,cloud_cover` +
     `&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,pressure_msl,weather_code,visibility,wind_speed_10m,is_day` +
     `&daily=sunrise,sunset` +
     `&wind_speed_unit=ms` +
@@ -216,6 +222,10 @@ async function fetchFromLiveOpenMeteo(params: {
     visibility: Math.round(currentVisibility),
     wind: {
       speed: Number((data.current.wind_speed_10m ?? 0).toFixed(1)),
+      deg:
+        typeof data.current.wind_direction_10m === 'number'
+          ? Math.round(data.current.wind_direction_10m)
+          : undefined,
     },
     clouds: {
       all: Math.round(data.current.cloud_cover ?? 0),
@@ -270,6 +280,89 @@ async function fetchFromLiveOpenMeteo(params: {
   return { current, forecast };
 }
 
+/**
+ * Fetches real-time severe weather alerts for a coordinate via the
+ * Google Maps Platform Weather API (publicAlerts:lookup).
+ * Falls back to the official US National Weather Service active alert feed
+ * when coordinates are in the US and no Maps Weather alert response is available.
+ * Docs: https://developers.google.com/maps/documentation/weather/weather-alerts?utm_campaign=gmp_mcp_codeassist_v1_aistudio
+ */
+async function fetchRealTimeWeatherAlerts(
+  lat: number,
+  lon: number,
+  countryCode?: string
+): Promise<{ alerts: WeatherAlert[]; gmpQuotaExceeded: boolean; alertSource: string }> {
+  const mapsApiKey = getGoogleMapsApiKey();
+
+  let gmpQuotaExceeded = false;
+
+  if (mapsApiKey) {
+    try {
+      const url = new URL('https://weather.googleapis.com/v1/publicAlerts:lookup');
+      url.searchParams.set('key', mapsApiKey);
+      url.searchParams.set('location.latitude', String(lat));
+      url.searchParams.set('location.longitude', String(lon));
+      url.searchParams.set('languageCode', 'en');
+
+      const res = await fetchWithTimeout(url.toString(), {
+        method: 'GET',
+        headers: {
+          'X-Goog-Maps-Solution-ID': 'gmp_mcp_codeassist_v1_aistudio',
+        },
+      });
+
+      if (res.status === 429) {
+        gmpQuotaExceeded = true;
+      } else if (res.ok) {
+        const data = await res.json();
+        return {
+          alerts: normalizeGoogleWeatherAlerts(data),
+          gmpQuotaExceeded: false,
+          alertSource: 'google-weather-api',
+        };
+      } else {
+        const errPayload = await res.json().catch(() => null);
+        if (errPayload?.error?.status === 'RESOURCE_EXHAUSTED') {
+          gmpQuotaExceeded = true;
+        }
+      }
+    } catch {
+      // Fall through to official NWS endpoint if applicable
+    }
+  }
+
+  // Secondary official public alert source for US locations (NOAA / NWS)
+  const upperCountry = (countryCode || '').toUpperCase();
+  const isLikelyUs =
+    upperCountry === 'US' ||
+    upperCountry === 'USA' ||
+    (lat >= 18 && lat <= 72 && lon >= -170 && lon <= -65);
+
+  if (isLikelyUs) {
+    try {
+      const nwsUrl = `https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lon.toFixed(4)}`;
+      const nwsRes = await fetchWithTimeout(nwsUrl, {
+        headers: {
+          Accept: 'application/geo+json',
+          'User-Agent': 'WeatherNowApp/1.0',
+        },
+      });
+      if (nwsRes.ok) {
+        const nwsData = await nwsRes.json();
+        return {
+          alerts: normalizeNwsAlerts(nwsData),
+          gmpQuotaExceeded,
+          alertSource: 'nws',
+        };
+      }
+    } catch {
+      // Non-fatal: return empty alerts list
+    }
+  }
+
+  return { alerts: [], gmpQuotaExceeded, alertSource: 'none' };
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const city = searchParams.get('city')?.trim();
@@ -284,20 +377,43 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const owmApiKey = process.env.OPENWEATHER_API_KEY?.trim();
+    const owmApiKey = getOpenWeatherApiKey();
 
-    if (owmApiKey && owmApiKey !== 'YOUR_OPENWEATHERMAP_API_KEY') {
-      const payload = await fetchFromOpenWeatherMap({ city, lat, lon }, owmApiKey);
-      return NextResponse.json({
-        ...payload,
-        source: 'openweathermap',
-      });
+    let payload: { current: CurrentWeatherData; forecast: ForecastResponseData };
+    let source: 'openweathermap' | 'open-meteo';
+
+    if (owmApiKey) {
+      try {
+        payload = await fetchFromOpenWeatherMap({ city, lat, lon }, owmApiKey);
+        source = 'openweathermap';
+      } catch (owmErr: unknown) {
+        const owmStatus =
+          owmErr && typeof owmErr === 'object' && 'status' in owmErr
+            ? Number((owmErr as { status?: number }).status)
+            : 500;
+        if (owmStatus === 404) {
+          throw owmErr;
+        }
+        payload = await fetchFromLiveOpenMeteo({ city, lat, lon });
+        source = 'open-meteo';
+      }
+    } else {
+      payload = await fetchFromLiveOpenMeteo({ city, lat, lon });
+      source = 'open-meteo';
     }
 
-    const payload = await fetchFromLiveOpenMeteo({ city, lat, lon });
+    const alertResult = await fetchRealTimeWeatherAlerts(
+      payload.current.coord.lat,
+      payload.current.coord.lon,
+      payload.current.sys.country
+    );
+
     return NextResponse.json({
       ...payload,
-      source: 'open-meteo',
+      alerts: alertResult.alerts,
+      alertSource: alertResult.alertSource,
+      gmpQuotaExceeded: alertResult.gmpQuotaExceeded,
+      source,
     });
   } catch (err: unknown) {
     if (err && typeof err === 'object' && 'status' in err && 'message' in err) {

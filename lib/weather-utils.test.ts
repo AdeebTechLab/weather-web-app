@@ -9,6 +9,10 @@ import {
   formatSunTime,
   mapWmoToOwm,
   getCountryName,
+  normalizeGoogleWeatherAlerts,
+  normalizeNwsAlerts,
+  parseAlertPolygonRings,
+  formatAlertTimeRange,
   type ForecastEntry,
 } from './weather-utils';
 
@@ -144,3 +148,90 @@ test('getCountryName converts ISO country codes into readable country names', ()
   assert.equal(getCountryName('IS'), 'Iceland');
   assert.equal(getCountryName(''), '');
 });
+
+test('normalizeGoogleWeatherAlerts sorts alerts by severity and preserves agency attribution', () => {
+  const payload = {
+    regionCode: 'US',
+    weatherAlerts: [
+      {
+        alertId: 'a-mod',
+        alertTitle: { text: 'Heat Advisory', languageCode: 'en' },
+        eventType: 'HEAT',
+        areaName: 'Phoenix Metro',
+        severity: 'MODERATE',
+        urgency: 'EXPECTED',
+        dataSource: {
+          publisher: 'NOAA',
+          name: 'National Weather Service',
+          authorityUri: 'https://www.weather.gov/',
+        },
+      },
+      {
+        alertId: 'a-ext',
+        alertTitle: { text: 'Flash Flood Warning', languageCode: 'en' },
+        eventType: 'FLASH_FLOOD',
+        areaName: 'Wake County, NC',
+        severity: 'EXTREME',
+        urgency: 'IMMEDIATE',
+        instruction: ['Move immediately to higher ground.'],
+        dataSource: {
+          publisher: 'NOAA',
+          name: 'National Weather Service',
+          authorityUri: 'https://www.weather.gov/',
+        },
+      },
+    ],
+  };
+
+  const alerts = normalizeGoogleWeatherAlerts(payload);
+  assert.equal(alerts.length, 2);
+  assert.equal(alerts[0].title, 'Flash Flood Warning');
+  assert.equal(alerts[0].severity, 'EXTREME');
+  assert.equal(alerts[0].dataSource.name, 'National Weather Service');
+  assert.equal(alerts[0].dataSource.authorityUri, 'https://www.weather.gov/');
+  assert.equal(alerts[1].title, 'Heat Advisory');
+
+  assert.deepEqual(normalizeGoogleWeatherAlerts({ regionCode: 'US' }), []);
+});
+
+test('normalizeNwsAlerts extracts NWS severe warnings and GeoJSON polygons', () => {
+  const nwsPayload = {
+    features: [
+      {
+        id: 'nws-1',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[[-78.45, 35.82], [-78.41, 35.73], [-78.28, 35.66], [-78.45, 35.82]]],
+        },
+        properties: {
+          event: 'Severe Thunderstorm Warning',
+          areaDesc: 'Wake, NC',
+          severity: 'Severe',
+          urgency: 'Immediate',
+          senderName: 'NWS Raleigh NC',
+          instruction: 'Seek shelter indoors immediately.',
+        },
+      },
+    ],
+  };
+
+  const alerts = normalizeNwsAlerts(nwsPayload);
+  assert.equal(alerts.length, 1);
+  assert.equal(alerts[0].severity, 'SEVERE');
+  assert.equal(alerts[0].dataSource.name, 'NWS Raleigh NC');
+  const rings = parseAlertPolygonRings(alerts[0].polygon);
+  assert.equal(rings.length, 1);
+  assert.equal(rings[0].length, 4);
+  assert.deepEqual(rings[0][0], { lat: 35.82, lng: -78.45 });
+});
+
+test('formatAlertTimeRange formats ISO alert start and expiration times in local offset', () => {
+  const range = formatAlertTimeRange(
+    '2025-08-06T18:24:00Z',
+    '2025-08-06T21:30:00Z',
+    -14400 // UTC-4
+  );
+  assert.match(range, /2:24 PM/);
+  assert.match(range, /5:30 PM/);
+});
+

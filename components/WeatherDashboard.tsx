@@ -13,8 +13,12 @@ import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import AtmosphericBackdrop from './AtmosphericBackdrop';
 import WeatherHeader from './WeatherHeader';
 import RecentSearches from './RecentSearches';
+import WeatherAlertBanner from './WeatherAlertBanner';
 import CurrentWeatherPanel from './CurrentWeatherPanel';
 import ForecastGrid from './ForecastGrid';
+import WeatherMapPanel from './WeatherMapPanel';
+import WeatherScene3D from './WeatherScene3D';
+import WeatherIntelPanel from './WeatherIntelPanel';
 import {
   RECENT_SEARCHES_KEY,
   UNIT_PREFERENCE_KEY,
@@ -25,6 +29,7 @@ import {
   type DailyForecastSummary,
   type ForecastResponseData,
   type TemperatureUnit,
+  type WeatherAlert,
   type WeatherTheme,
 } from '@/lib/weather-utils';
 
@@ -37,19 +42,82 @@ const EXPLORE_CITIES = [
   'Paris',
 ];
 
-export default function WeatherDashboard() {
+// Tier 1 Google Maps Platform Demo Key quota listeners (registered once in browser)
+let gmpQuotaHooksInstalled = false;
+function installGmpQuotaHooks() {
+  if (typeof window === 'undefined' || gmpQuotaHooksInstalled) return;
+  gmpQuotaHooksInstalled = true;
+
+  let sawInvalidKey = false;
+  const win = window as Window & { gm_authFailure?: () => void };
+  const prevAuthFailure = win.gm_authFailure;
+  win.gm_authFailure = () => {
+    prevAuthFailure?.();
+    if (sawInvalidKey) {
+      window.dispatchEvent(new CustomEvent('gmp-auth-error'));
+    } else {
+      window.dispatchEvent(new CustomEvent('gmp-quota-exceeded'));
+    }
+  };
+
+  const origError = console.error;
+  console.error = (...args: unknown[]) => {
+    origError.apply(console, args);
+    const msg = args.map((a) => String(a)).join(' ');
+    if (
+      msg.includes('OverQuotaMapError') ||
+      msg.includes('QuotaExceededError')
+    ) {
+      window.dispatchEvent(new CustomEvent('gmp-quota-exceeded'));
+    } else if (
+      msg.includes('InvalidKeyMapError') ||
+      msg.includes('ApiNotActivatedMapError') ||
+      msg.includes('RefererNotAllowedMapError')
+    ) {
+      sawInvalidKey = true;
+      window.dispatchEvent(new CustomEvent('gmp-auth-error'));
+    }
+  };
+}
+
+interface WeatherDashboardProps {
+  mapsApiKey?: string;
+}
+
+export default function WeatherDashboard({
+  mapsApiKey = '',
+}: WeatherDashboardProps) {
   const [currentWeather, setCurrentWeather] =
     useState<CurrentWeatherData | null>(null);
   const [forecastDays, setForecastDays] = useState<DailyForecastSummary[]>([]);
+  const [weatherAlerts, setWeatherAlerts] = useState<WeatherAlert[]>([]);
   const [unit, setUnit] = useState<TemperatureUnit>('C');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [mapsQuotaExceeded, setMapsQuotaExceeded] = useState(false);
+  const [mapsAuthError, setMapsAuthError] = useState(false);
+  const [intelRequest, setIntelRequest] = useState<{
+    tab: 'search' | 'maps' | null;
+    nonce: number;
+  }>({ tab: null, nonce: 0 });
 
   const abortRef = useRef<AbortController | null>(null);
   const requestSeqRef = useRef(0);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    installGmpQuotaHooks();
+    const onQuotaExceeded = () => setMapsQuotaExceeded(true);
+    const onAuthError = () => setMapsAuthError(true);
+    window.addEventListener('gmp-quota-exceeded', onQuotaExceeded);
+    window.addEventListener('gmp-auth-error', onAuthError);
+    return () => {
+      window.removeEventListener('gmp-quota-exceeded', onQuotaExceeded);
+      window.removeEventListener('gmp-auth-error', onAuthError);
+    };
+  }, []);
 
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
@@ -119,14 +187,22 @@ export default function WeatherDashboard() {
 
         const current: CurrentWeatherData = payload.current;
         const forecast: ForecastResponseData = payload.forecast;
+        const alerts: WeatherAlert[] = Array.isArray(payload.alerts)
+          ? payload.alerts
+          : [];
         const daily = groupForecastByLocalDate(
           forecast.list,
           current.timezone,
           current.dt
         );
 
+        if (payload.gmpQuotaExceeded) {
+          setMapsQuotaExceeded(true);
+        }
+
         setCurrentWeather(current);
         setForecastDays(daily);
+        setWeatherAlerts(alerts);
         setErrorMessage(null);
 
         if (options.saveHistory !== false && current.name) {
@@ -247,6 +323,15 @@ export default function WeatherDashboard() {
     );
   }, [fetchWeather, showToast]);
 
+  const jumpToGroundedIntel = useCallback((tab: 'search' | 'maps') => {
+    setIntelRequest((prev) => ({ tab, nonce: prev.nonce + 1 }));
+    if (typeof document !== 'undefined') {
+      document
+        .getElementById('weather-intel-panel')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
   const theme: WeatherTheme = currentWeather
     ? determineWeatherTheme(
         currentWeather.weather[0]?.main || 'Clear',
@@ -270,6 +355,25 @@ export default function WeatherDashboard() {
       >
         <AtmosphericBackdrop theme={theme} />
 
+        {/* Google Maps Platform Demo Key Quota Warning Banner (persists at root level) */}
+        {mapsQuotaExceeded ? (
+          <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
+            <span>
+              Google Maps Platform quota reached. If you are the app owner,
+              visit{' '}
+              <a
+                href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-semibold text-amber-950 hover:text-amber-800"
+              >
+                maps developer site
+              </a>{' '}
+              for instructions to update your account.
+            </span>
+          </div>
+        ) : null}
+
         <WeatherHeader
           onSearch={(city) => fetchWeather({ city })}
           onUseLocation={handleUseLocation}
@@ -288,6 +392,17 @@ export default function WeatherDashboard() {
         />
 
         <main className="relative z-10 flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-5">
+          {/* Real-Time Severe Weather Alert Banner (top of dashboard when active alerts exist) */}
+          {!isLoading && currentWeather && weatherAlerts.length > 0 ? (
+            <WeatherAlertBanner
+              key={`${currentWeather.name}-${weatherAlerts.map((a) => a.alertId).join('|')}`}
+              alerts={weatherAlerts}
+              timezoneOffsetSeconds={currentWeather.timezone}
+              onInspectBriefing={() => jumpToGroundedIntel('search')}
+              onFindShelters={() => jumpToGroundedIntel('maps')}
+            />
+          ) : null}
+
           {/* Animated Inline Error Banner */}
           <AnimatePresence>
             {errorMessage ? (
@@ -371,7 +486,8 @@ export default function WeatherDashboard() {
                       Fetching live weather...
                     </p>
                     <p className={`text-sm ${subText}`}>
-                      Retrieving real-time conditions and 5-day forecast
+                      Retrieving real-time conditions, severe alerts, and 5-day
+                      forecast
                     </p>
                   </div>
                 </div>
@@ -414,10 +530,41 @@ export default function WeatherDashboard() {
                   isLightTheme={isLightTheme}
                   theme={theme}
                 />
+
                 <ForecastGrid
                   days={forecastDays}
                   unit={unit}
                   isLightTheme={isLightTheme}
+                />
+
+                {/* Interactive Google Map + Three.js 3D Observatory */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
+                  <WeatherMapPanel
+                    apiKey={mapsApiKey}
+                    weather={currentWeather}
+                    alerts={weatherAlerts}
+                    unit={unit}
+                    isLightTheme={isLightTheme}
+                    mapsAuthError={mapsAuthError}
+                    onSelectLocation={(lat, lon) =>
+                      fetchWeather({ lat, lon }, { saveHistory: true })
+                    }
+                  />
+                  <WeatherScene3D
+                    weather={currentWeather}
+                    theme={theme}
+                    isLightTheme={isLightTheme}
+                  />
+                </div>
+
+                {/* Gemini 4 Hydrogen Search & Maps Grounding Panel */}
+                <WeatherIntelPanel
+                  key={`${currentWeather.name}-${currentWeather.coord.lat.toFixed(2)}-${currentWeather.coord.lon.toFixed(2)}`}
+                  weather={currentWeather}
+                  alerts={weatherAlerts}
+                  isLightTheme={isLightTheme}
+                  requestedTab={intelRequest.tab}
+                  requestedNonce={intelRequest.nonce}
                 />
               </motion.div>
             ) : (
@@ -454,8 +601,8 @@ export default function WeatherDashboard() {
                   </h1>
                   <p className="text-sm sm:text-base text-white/80 leading-relaxed">
                     Search any city worldwide or use your current location to
-                    view real-time temperatures, atmospheric metrics, and a
-                    5-day forecast.
+                    view real-time temperatures, severe weather alerts,
+                    interactive Google Maps overlays, and a live 3D observatory.
                   </p>
                 </div>
 
@@ -514,7 +661,15 @@ export default function WeatherDashboard() {
               isLightTheme ? 'text-slate-700/80' : 'text-white/65'
             }`}
           >
-            WeatherNow · Live meteorological telemetry &amp; 5-day forecast
+            WeatherNow · Live meteorological telemetry, alerts &amp;{' '}
+            <a
+              href="https://maps.google.com/help/terms_maps/?utm_campaign=gmp_mcp_codeassist_v1_aistudio"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-4 hover:opacity-100"
+            >
+              Google Maps Terms
+            </a>
           </p>
           <a
             href="/WeatherNow_Project_Documentation.pdf"

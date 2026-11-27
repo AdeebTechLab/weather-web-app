@@ -1,5 +1,10 @@
 import WeatherDashboard from '@/components/WeatherDashboard';
+import { getGoogleMapsApiKey } from '@/lib/maps-config';
+
+export const dynamic = 'force-dynamic';
 
 export default function HomePage() {
-  return <WeatherDashboard />;
+  const mapsApiKey = getGoogleMapsApiKey();
+
+  return <WeatherDashboard mapsApiKey={mapsApiKey} />;
 }

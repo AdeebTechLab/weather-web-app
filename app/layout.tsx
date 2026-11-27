@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   },
 };
 
-const EXTENSION_ERROR_GUARD = `(function(){if(typeof window==='undefined')return;window.addEventListener('error',function(e){var src=(e&&e.filename)||'';var stack=(e&&e.error&&e.error.stack)||'';if(src.indexOf('chrome-extension://')===0||src.indexOf('moz-extension://')===0||stack.indexOf('chrome-extension://')!==-1||stack.indexOf('moz-extension://')!==-1){e.preventDefault();e.stopImmediatePropagation();}},true);})();`;
+const EXTENSION_ERROR_GUARD = `(function(){if(typeof window==='undefined')return;window.addEventListener('error',function(e){var msg=(e&&e.message)||'';var src=(e&&e.filename)||'';var stack=(e&&e.error&&e.error.stack)||'';if(msg.indexOf('ResizeObserver loop')!==-1||src.indexOf('chrome-extension://')===0||src.indexOf('moz-extension://')===0||stack.indexOf('chrome-extension://')!==-1||stack.indexOf('moz-extension://')!==-1){e.preventDefault();e.stopImmediatePropagation();}},true);})();`;
 
 export default function RootLayout({
   children,

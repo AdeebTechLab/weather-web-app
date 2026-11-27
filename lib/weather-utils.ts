@@ -86,6 +86,41 @@ export interface DailyForecastSummary {
   entryCount: number;
 }
 
+export type WeatherAlertSeverity =
+  | 'EXTREME'
+  | 'SEVERE'
+  | 'MODERATE'
+  | 'MINOR'
+  | 'UNKNOWN';
+
+export interface WeatherAlertSafetyRecommendation {
+  directive: string;
+  subtext?: string;
+}
+
+export interface WeatherAlertDataSource {
+  publisher?: string;
+  name: string;
+  authorityUri?: string;
+}
+
+export interface WeatherAlert {
+  alertId: string;
+  title: string;
+  eventType: string;
+  areaName: string;
+  description?: string;
+  severity: WeatherAlertSeverity;
+  certainty?: string;
+  urgency?: string;
+  instruction?: string[];
+  safetyRecommendations?: WeatherAlertSafetyRecommendation[];
+  startTime?: string;
+  expirationTime?: string;
+  polygon?: string;
+  dataSource: WeatherAlertDataSource;
+}
+
 export const RECENT_SEARCHES_KEY = 'weathernow_recent_searches';
 export const UNIT_PREFERENCE_KEY = 'weathernow_temp_unit';
 export const MAX_RECENT_SEARCHES = 5;
@@ -382,3 +417,260 @@ export function mapWmoToOwm(wmoCode: number, isDay: boolean): WeatherConditionIt
 
   return { id: 802, main: 'Clouds', description: 'partly cloudy', icon: `03${suffix}` };
 }
+
+const SEVERITY_RANK: Record<WeatherAlertSeverity, number> = {
+  EXTREME: 4,
+  SEVERE: 3,
+  MODERATE: 2,
+  MINOR: 1,
+  UNKNOWN: 0,
+};
+
+export function normalizeAlertSeverity(value?: string): WeatherAlertSeverity {
+  const upper = (value || '').toUpperCase().trim();
+  if (
+    upper === 'EXTREME' ||
+    upper === 'SEVERE' ||
+    upper === 'MODERATE' ||
+    upper === 'MINOR'
+  ) {
+    return upper;
+  }
+  return 'UNKNOWN';
+}
+
+export function sortAlertsBySeverity(alerts: WeatherAlert[]): WeatherAlert[] {
+  return [...alerts].sort(
+    (a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity]
+  );
+}
+
+interface RawGoogleWeatherAlert {
+  alertId?: string;
+  alertTitle?: { text?: string; languageCode?: string };
+  eventType?: string;
+  areaName?: string;
+  description?: string;
+  severity?: string;
+  certainty?: string;
+  urgency?: string;
+  instruction?: string[];
+  safetyRecommendations?: Array<{ directive?: string; subtext?: string }>;
+  startTime?: string;
+  expirationTime?: string;
+  polygon?: string;
+  dataSource?: {
+    publisher?: string;
+    name?: string;
+    authorityUri?: string;
+  };
+}
+
+/**
+ * Normalizes real-time alerts from the Google Maps Platform Weather API
+ * (https://weather.googleapis.com/v1/publicAlerts:lookup).
+ */
+export function normalizeGoogleWeatherAlerts(payload: unknown): WeatherAlert[] {
+  if (!payload || typeof payload !== 'object') return [];
+  const rawList = (payload as { weatherAlerts?: unknown }).weatherAlerts;
+  if (!Array.isArray(rawList)) return [];
+
+  const normalized: WeatherAlert[] = [];
+  for (let i = 0; i < rawList.length; i++) {
+    const item = rawList[i] as RawGoogleWeatherAlert;
+    const title = item?.alertTitle?.text?.trim();
+    if (!title) continue;
+
+    normalized.push({
+      alertId: item.alertId || `gmp-alert-${i}`,
+      title,
+      eventType: item.eventType || 'WEATHER_ALERT',
+      areaName: item.areaName || 'Local forecast area',
+      description: item.description?.trim(),
+      severity: normalizeAlertSeverity(item.severity),
+      certainty: item.certainty,
+      urgency: item.urgency,
+      instruction: Array.isArray(item.instruction)
+        ? item.instruction.filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+        : undefined,
+      safetyRecommendations: Array.isArray(item.safetyRecommendations)
+        ? item.safetyRecommendations
+            .filter((r) => typeof r?.directive === 'string' && r.directive.trim().length > 0)
+            .map((r) => ({
+              directive: r.directive!.trim(),
+              subtext: r.subtext?.trim(),
+            }))
+        : undefined,
+      startTime: item.startTime,
+      expirationTime: item.expirationTime,
+      polygon: typeof item.polygon === 'string' ? item.polygon : undefined,
+      dataSource: {
+        publisher: item.dataSource?.publisher,
+        name: item.dataSource?.name || item.dataSource?.publisher || 'Official Meteorological Authority',
+        authorityUri: item.dataSource?.authorityUri,
+      },
+    });
+  }
+
+  return sortAlertsBySeverity(normalized);
+}
+
+interface RawNwsFeature {
+  id?: string;
+  geometry?: {
+    type?: string;
+    coordinates?: unknown;
+  } | null;
+  properties?: {
+    id?: string;
+    event?: string;
+    headline?: string;
+    areaDesc?: string;
+    description?: string;
+    instruction?: string | null;
+    severity?: string;
+    certainty?: string;
+    urgency?: string;
+    onset?: string;
+    effective?: string;
+    expires?: string;
+    ends?: string;
+    senderName?: string;
+  };
+}
+
+/**
+ * Normalizes real-time active weather alerts from the US National Weather Service (api.weather.gov).
+ */
+export function normalizeNwsAlerts(payload: unknown): WeatherAlert[] {
+  if (!payload || typeof payload !== 'object') return [];
+  const features = (payload as { features?: unknown }).features;
+  if (!Array.isArray(features)) return [];
+
+  const normalized: WeatherAlert[] = [];
+  for (let i = 0; i < features.length; i++) {
+    const feat = features[i] as RawNwsFeature;
+    const props = feat?.properties;
+    const title = props?.event?.trim() || props?.headline?.trim();
+    if (!title) continue;
+
+    const instructionList = props?.instruction
+      ? props.instruction
+          .split(/\n+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : undefined;
+
+    normalized.push({
+      alertId: props?.id || feat.id || `nws-alert-${i}`,
+      title,
+      eventType: title.toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
+      areaName: props?.areaDesc?.trim() || 'Local forecast area',
+      description: props?.description?.trim(),
+      severity: normalizeAlertSeverity(props?.severity),
+      certainty: props?.certainty?.toUpperCase(),
+      urgency: props?.urgency?.toUpperCase(),
+      instruction: instructionList,
+      startTime: props?.onset || props?.effective,
+      expirationTime: props?.ends || props?.expires,
+      polygon:
+        feat.geometry && feat.geometry.type === 'Polygon'
+          ? JSON.stringify(feat.geometry)
+          : undefined,
+      dataSource: {
+        publisher: 'NOAA',
+        name: props?.senderName?.trim() || 'National Weather Service',
+        authorityUri: 'https://www.weather.gov/',
+      },
+    });
+  }
+
+  return sortAlertsBySeverity(normalized);
+}
+
+/**
+ * Parses a GeoJSON Polygon/MultiPolygon JSON string (e.g. from Weather API publicAlerts)
+ * into an array of closed Google Maps LatLngLiteral rings.
+ */
+export function parseAlertPolygonRings(
+  polygonJson?: string
+): Array<Array<{ lat: number; lng: number }>> {
+  if (!polygonJson) return [];
+  try {
+    const parsed = JSON.parse(polygonJson) as {
+      type?: string;
+      coordinates?: unknown;
+    };
+    const rings: Array<Array<{ lat: number; lng: number }>> = [];
+
+    const extractRing = (coords: unknown) => {
+      if (!Array.isArray(coords)) return;
+      const path: Array<{ lat: number; lng: number }> = [];
+      for (const pair of coords) {
+        if (
+          Array.isArray(pair) &&
+          pair.length >= 2 &&
+          typeof pair[0] === 'number' &&
+          typeof pair[1] === 'number' &&
+          Number.isFinite(pair[0]) &&
+          Number.isFinite(pair[1])
+        ) {
+          path.push({ lat: pair[1], lng: pair[0] });
+        }
+      }
+      if (path.length >= 3) {
+        rings.push(path);
+      }
+    };
+
+    if (parsed.type === 'Polygon' && Array.isArray(parsed.coordinates)) {
+      for (const ring of parsed.coordinates) {
+        extractRing(ring);
+      }
+    } else if (parsed.type === 'MultiPolygon' && Array.isArray(parsed.coordinates)) {
+      for (const poly of parsed.coordinates) {
+        if (Array.isArray(poly)) {
+          for (const ring of poly) {
+            extractRing(ring);
+          }
+        }
+      }
+    }
+
+    return rings;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Formats an alert's start and expiration ISO timestamps into a compact readable range.
+ */
+export function formatAlertTimeRange(
+  startTime?: string,
+  expirationTime?: string,
+  timezoneOffsetSeconds = 0
+): string {
+  const formatIso = (iso?: string): string => {
+    if (!iso) return '';
+    const ms = Date.parse(iso);
+    if (!Number.isFinite(ms)) return '';
+    const shifted = new Date(ms + timezoneOffsetSeconds * 1000);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'UTC',
+    }).format(shifted);
+  };
+
+  const start = formatIso(startTime);
+  const end = formatIso(expirationTime);
+  if (start && end) return `${start} – ${end}`;
+  if (end) return `Until ${end}`;
+  if (start) return `Effective ${start}`;
+  return '';
+}
+
